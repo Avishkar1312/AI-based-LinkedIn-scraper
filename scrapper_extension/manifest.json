@@ -1,0 +1,30 @@
+{
+    "manifest_version": 3,
+    "name": "Tribeca",
+    "version": "1.0",
+    "permissions": [
+        "scripting",
+        "activeTab",
+        "tabs"
+    ],
+    "host_permissions": [
+        "*://www.linkedin.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"  
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": "tribeca.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://www.linkedin.com/company/*/people/*"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ]
+}
