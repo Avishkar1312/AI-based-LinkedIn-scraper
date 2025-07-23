@@ -5,7 +5,7 @@ import json
 import re # Import the regular expression module
 
 app = Flask(__name__)
-CORS(app) # ✅ Enables CORS for all routes
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # --- HIGHLIGHTED CHANGE START ---
 # Get the directory of the current script (app.py), which is 'server'

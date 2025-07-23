@@ -4,6 +4,9 @@ console.log("DEBUG: content.js has loaded!"); // Add this line at the very top
 
 // ... rest of your content.js code (delay, scrapePeoplePage, extractProfileDetails, window assignments)
 // Helper for delays
+
+const BASE_BACKEND_URL = 'https://tribeca-scraper.streamlit.app/';
+
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
@@ -65,7 +68,7 @@ async function scrapePeoplePage(filename) {
 
     // Send the data to your Flask backend
     try {
-        const response = await fetch("http://localhost:5000/save_urls", {
+        const response = await fetch(`${BASE_BACKEND_URL}/save_urls`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ urls: profileUrls, filename: filename })
@@ -176,7 +179,7 @@ async function extractProfileDetails() {
     // --- START OF MODIFIED CODE FOR FETCH REQUEST BODY ---
     // Send the extracted experiences, profile URL, and profile Name to your Flask backend
     try {
-        const response = await fetch("http://localhost:5000/save_experience_details", {
+        const response = await fetch(`${BASE_BACKEND_URL}/save_experience_details`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ // <-- NOW SENDING PROFILE URL AND NAME
