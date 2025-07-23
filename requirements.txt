@@ -1,0 +1,6 @@
+Flask
+Flask-Cors
+gspread
+oauth2client
+streamlit
+psutil

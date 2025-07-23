@@ -3,11 +3,50 @@
 
 <head>
     <title>Scrape LinkedIn</title>
+    <style>
+        body {
+            width: 300px;
+            padding: 10px;
+            font-family: sans-serif;
+        }
+
+        input {
+            width: calc(100% - 20px);
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        #extracted-output {
+            margin-top: 15px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            min-height: 50px;
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            /* Preserve whitespace and break lines */
+            word-wrap: break-word;
+            /* Break long words */
+        }
+    </style>
 </head>
 
 <body>
-    <input type="text" id="filename-input" placeholder="Enter company name" />
-    <button id="scrape-btn">Scrape People Page</button>
+    <input type="text" id="filename-input" placeholder="Filename for bulk scrape (optional)" />
+    <button id="scrape-btn">Bulk Scrape Company People Page</button>
+    <button id="extract-profile-btn">Extract Current Profile Details</button>
+
+    <div id="extracted-output">Extracted data will appear here.</div>
+
     <script src="popup.js"></script>
 </body>
 

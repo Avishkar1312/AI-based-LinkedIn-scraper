@@ -62,29 +62,44 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Listener for messages from popup.js or content.js
 // The popup will send a message here when the "Scrap Data" button is clicked.
+// Listener for messages from popup.js or content.js
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Check if the message is to execute the content script
     if (message.action === 'executeContentScript') {
-        // Verify that the message came from a valid tab (e.g., popup associated with a tab)
-        // and that the URL is still valid for scraping.
-        if (sender.tab && sender.tab.url.includes("www.linkedin.com/company/") && sender.tab.url.includes("/people/")) {
-            // Use chrome.scripting.executeScript to inject and run content.js
-            // This is necessary because content.js is set to run only on specific pages in manifest.json,
-            // but the user might click the button on a page that *was* a people page but somehow changed,
-            // or if the script needs to be re-run.
-            chrome.scripting.executeScript({
-                target: { tabId: sender.tab.id },
-                files: ['content.js']
-            })
-                .then(() => {
-                    sendResponse({ success: true, message: "Content script executed." });
-                })
-                .catch(error => {
-                    sendResponse({ success: false, message: `Error executing content script: ${error.message}` });
-                });
-        } else {
-            sendResponse({ success: false, message: "Content script cannot be executed on this page (URL mismatch)." });
-        }
+        // Instead of directly using sender.tab.url, query for the active tab's URL
+        // This makes the logic more robust to ensure we're targeting the *currently active* tab
+        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+            if (tabs[0] && tabs[0].url) {
+                const currentTabId = tabs[0].id;
+                const currentTabUrl = tabs[0].url;
+
+                // Apply the URL validation logic using the queried tab URL
+                // Use the more robust regex from our previous discussion or your current includes checks
+                const isLinkedInPeoplePage = /^https:\/\/www\.linkedin\.com\/company\/[^/]+\/people\/?(?:[\?#].*)?$/.test(currentTabUrl);
+                // OR your original simpler checks if you prefer:
+                // const isLinkedInPeoplePage = currentTabUrl.includes("www.linkedin.com/company/") && currentTabUrl.includes("/people/");
+
+
+                if (isLinkedInPeoplePage) {
+                    try {
+                        await chrome.scripting.executeScript({
+                            target: { tabId: currentTabId }, // Use the queried tab ID
+                            files: ['content.js'],
+                            args: [message.filename]
+                        });
+                        sendResponse({ success: true, message: "Content script executed." });
+                    } catch (error) {
+                        sendResponse({ success: false, message: `Error executing content script: ${error.message}` });
+                    }
+                } else {
+                    sendResponse({ success: false, message: "Content script cannot be executed on this page (URL mismatch)." });
+                }
+            } else {
+                // Handle case where no active tab is found or URL is missing
+                sendResponse({ success: false, message: "Could not determine current tab URL to execute script." });
+            }
+        });
+
         return true; // Important: Indicate that sendResponse will be called asynchronously
     }
 });
