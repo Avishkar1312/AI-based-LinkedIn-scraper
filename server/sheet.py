@@ -19,13 +19,34 @@ SPREADSHEET_ID = sys.argv[3]
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Construct the full path to the service account file
-SERVICE_ACCOUNT_FILE_PATH = os.path.join(script_dir, 'service_account.json')
+#SERVICE_ACCOUNT_FILE_PATH = os.path.join(script_dir, 'service_account.json')
 
 # Construct the full path to the experience JSON file
 # This assumes app.py saves the JSON file directly into the 'server' directory
 # where sheet.py also resides.
 BASE_DATA_INPUT_DIR = os.path.join(script_dir, "..", "company_urls")
 EXPERIENCE_JSON_FILE_PATH = os.path.join(BASE_DATA_INPUT_DIR, json_file_name)
+
+SERVICE_ACCOUNT_INFO = None
+try:
+    service_account_json_str = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+    if service_account_json_str:
+        SERVICE_ACCOUNT_INFO = json.loads(service_account_json_str)
+    else:
+        # Fallback for local development: try to load from local file
+        local_service_account_path = os.path.join(script_dir, 'service_account.json')
+        if os.path.exists(local_service_account_path):
+            with open(local_service_account_path, 'r') as f:
+                SERVICE_ACCOUNT_INFO = json.load(f)
+        else:
+            print("Error: GOOGLE_SERVICE_ACCOUNT_JSON environment variable not set and local 'service_account.json' not found.")
+            sys.exit(1) # Exit if credentials aren't found
+except json.JSONDecodeError:
+    print("Error: GOOGLE_SERVICE_ACCOUNT_JSON environment variable contains invalid JSON.")
+    sys.exit(1)
+except Exception as e:
+    print(f"Error loading service account info: {e}")
+    sys.exit(1)
 
 #SPREADSHEET_ID = '11-81uSoERbeJ_2L5-YeEFZhYKMNx58SaG3AIH7Jq-4E'
 TARGET_WORKSHEET_NAME = sheet_tab_name
@@ -36,7 +57,7 @@ def append_profile_experience_to_sheet():
 
     try:
         # Use the fully qualified path for the service account file
-        creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE_PATH, scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_info(SERVICE_ACCOUNT_INFO, scope)
         client = gspread.authorize(creds)
     except Exception as e:
         # Removed the unicode character (❌) to prevent UnicodeEncodeError
