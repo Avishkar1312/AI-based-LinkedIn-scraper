@@ -19,14 +19,14 @@ SPREADSHEET_ID = sys.argv[3]
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Construct the full path to the service account file
-#SERVICE_ACCOUNT_FILE_PATH = os.path.join(script_dir, 'service_account.json')
+SERVICE_ACCOUNT_FILE_PATH = os.path.join(script_dir, 'service_account.json')
 
 # Construct the full path to the experience JSON file
 # This assumes app.py saves the JSON file directly into the 'server' directory
 # where sheet.py also resides.
 BASE_DATA_INPUT_DIR = os.path.join(script_dir, "..", "company_urls")
 EXPERIENCE_JSON_FILE_PATH = os.path.join(BASE_DATA_INPUT_DIR, json_file_name)
-
+"""
 SERVICE_ACCOUNT_INFO = None
 try:
     service_account_json_str = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
@@ -47,7 +47,7 @@ except json.JSONDecodeError:
 except Exception as e:
     print(f"Error loading service account info: {e}")
     sys.exit(1)
-
+"""
 #SPREADSHEET_ID = '11-81uSoERbeJ_2L5-YeEFZhYKMNx58SaG3AIH7Jq-4E'
 TARGET_WORKSHEET_NAME = sheet_tab_name
 
@@ -57,7 +57,7 @@ def append_profile_experience_to_sheet():
 
     try:
         # Use the fully qualified path for the service account file
-        creds = ServiceAccountCredentials.from_json_keyfile_info(SERVICE_ACCOUNT_INFO, scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE_PATH, scope)
         client = gspread.authorize(creds)
     except Exception as e:
         # Removed the unicode character (❌) to prevent UnicodeEncodeError

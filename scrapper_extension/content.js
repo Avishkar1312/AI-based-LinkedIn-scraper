@@ -5,7 +5,7 @@ console.log("DEBUG: content.js has loaded!"); // Add this line at the very top
 // ... rest of your content.js code (delay, scrapePeoplePage, extractProfileDetails, window assignments)
 // Helper for delays
 
-const BASE_BACKEND_URL = 'https://tribeca-scraper.streamlit.app/';
+const BASE_BACKEND_URL = 'http://localhost:5000';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -182,7 +182,7 @@ async function extractProfileDetails() {
         const response = await fetch(`${BASE_BACKEND_URL}/save_experience_details`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ // <-- NOW SENDING PROFILE URL AND NAME
+            body: JSON.stringify({
                 profileUrl: profileUrl,
                 profileName: profileName,
                 experiences: experiences

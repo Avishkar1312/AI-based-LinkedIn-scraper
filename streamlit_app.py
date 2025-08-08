@@ -2,7 +2,7 @@ import streamlit as st
 import subprocess
 import os
 import psutil # For checking if a process is running
-import sys    # <--- NEW: Import sys to get the current Python executable
+import sys    # Import sys to get the current Python executable
 
 st.set_page_config(page_title="LinkedIn Scraper UI", layout="centered")
 
@@ -12,8 +12,8 @@ st.markdown("""
 This interface helps you manage and automate the data transfer from your LinkedIn Scraper extension to Google Sheets.
 
 **Important Notes:**
-* **Ensure Google Sheet Setup:** Your Google Sheet must be properly connected to your Python scripts (e.g., via `gspread` or similar authentication) and the tabs you specify below must exist.
-* **`app.py` Backend:** The `app.py` backend server **must be running** for your Chrome extension to send data. Use the controls below to start and stop it.
+* **If you want to use a new sheets make sure you go to "Share" section and give this email "tribeca-scrapper@tribeca-scrapper-466812.iam.gserviceaccount.com" Editor access**
+* **Before starting it create 2 tabs in Google sheets and name them the same thing that you would put in the below options**
 """)
 
 # Initialize session state for app.py process
@@ -34,26 +34,31 @@ def is_app_py_running():
 
 st.header("1. Configuration")
 
-# --- HIGHLIGHTED CHANGE START ---
 google_sheet_id = st.text_input(
     "Google Spreadsheet ID:",
-    value="11-81uSoERbeJ_2L5-YeEFZhYKMNx58SaG3AIH7Jq-4E", # Your current hardcoded ID
+    value="13UUPWix3ux10kwe2N_4-hHpGzvzCy4v1rozGtzbm04A", # Your current hardcoded ID
     help="Enter the ID of your Google Spreadsheet. You can find this in the sheet's URL (e.g., docs.google.com/spreadsheets/d/THIS_IS_THE_ID/edit)."
 )
-# --- HIGHLIGHTED CHANGE END ---
 
-# Input fields for dynamic names
+# Input field for mass scraped URLs filename (remains)
 mass_scrape_json_filename = st.text_input(
-    "JSON File Name for Mass Scraped URLs (from Extension):",
+    "File Name for Mass Scraped URLs:",
     value="mass_scraped_urls.json",
     help="This is the name of the JSON file where your extension stores mass-scraped URLs and names. Ensure your extension uses this name."
 )
 
-individual_profile_json_filename = st.text_input(
-    "JSON File Name for Individual Profile Data (from app.py):",
-    value="individual_profiles_data.json",
-    help="This is the name of the JSON file where `app.py` stores individual profile details. This name will be passed to `app.py` via an environment variable."
-)
+# --- HIGHLIGHTED CHANGE START ---
+# REMOVED the input field for individual_profile_json_filename.
+# Now, it's derived automatically.
+
+# Derive the individual profile JSON filename
+# Remove .json extension if present, then append _profiles_data.json
+base_name = os.path.splitext(mass_scrape_json_filename)[0]
+individual_profile_json_filename = f"{base_name}_profiles_data.json"
+
+st.info(f"Individual Profile Data JSON File Name (derived): `{individual_profile_json_filename}`")
+# --- HIGHLIGHTED CHANGE END ---
+
 
 mass_sheet_tab_name = st.text_input(
     "Google Sheet Tab Name for Mass Scraped Data:",
@@ -67,22 +72,22 @@ individual_sheet_tab_name = st.text_input(
     help="The name of the tab in your Google Sheet where individual profile details will be uploaded. This tab must exist in your Google Sheet."
 )
 
-st.header("2. Manage `app.py` (Backend Server)")
+st.header("2. Start the scraper")
 
 app_status_placeholder = st.empty()
 
 def update_app_status():
     if is_app_py_running():
-        app_status_placeholder.success(f"🟢 `app.py` is running (PID: {st.session_state.app_process.pid})")
+        app_status_placeholder.success(f"🟢 Scraper is running (PID: {st.session_state.app_process.pid})")
     else:
-        app_status_placeholder.error("🔴 `app.py` is not running.")
+        app_status_placeholder.error("🔴 Scraper is not running.")
 
 update_app_status() # Initial status display
 
 col1, col2 = st.columns(2)
 
 # Get the path to the Python executable from the current environment
-python_executable = sys.executable # <--- NEW: Get the current Python executable
+python_executable = sys.executable
 
 with col1:
     if st.button("▶️ Start scraper ", disabled=is_app_py_running()):
@@ -93,58 +98,57 @@ with col1:
             env_vars["INDIVIDUAL_PROFILE_JSON_NAME"] = individual_profile_json_filename
 
             # Start app.py in the background
-            # We assume app.py is in a 'server' subdirectory relative to this script
             script_path = os.path.join("server", "app.py")
             if not os.path.exists(script_path):
-                st.error(f"Error: `app.py` not found at '{script_path}'. Please ensure it's in the 'server' subdirectory.")
+                st.error(f"Error: scraper not found at '{script_path}'. Please ensure it's in the 'server' subdirectory.")
             else:
                 st.session_state.app_process = subprocess.Popen(
-                    [python_executable, script_path], # <--- CHANGED: Use python_executable
+                    [python_executable, script_path],
                     env=env_vars,
                     stdout=subprocess.PIPE, # Capture output
                     stderr=subprocess.PIPE, # Capture errors
                     text=True # Decode stdout/stderr as text
                 )
-                st.success(f"`app.py` started successfully with PID: {st.session_state.app_process.pid}")
-                st.warning("Keep this Streamlit app open while `app.py` is running.")
+                st.success(f"scraper started successfully with PID: {st.session_state.app_process.pid}")
+                st.warning("Keep this website open while scraper is running.")
                 update_app_status()
         except Exception as e:
-            st.error(f"Failed to start `app.py`: {e}")
-            st.session_state.app_process = None # Clear process if failed
+            st.error(f"Failed to start scraper`: {e}")
+            st.session_state.app_process = None
             update_app_status()
 
 with col2:
     if st.button("⏹️ Stop scraper", disabled=not is_app_py_running()):
         if st.session_state.app_process:
-            st.info("Attempting to stop `app.py`...")
+            st.info("Attempting to stop scraper...")
             try:
                 st.session_state.app_process.terminate() # Send SIGTERM
                 st.session_state.app_process.wait(timeout=5) # Wait for it to terminate
                 if st.session_state.app_process.poll() is not None:
-                    st.success("`app.py` stopped successfully.")
+                    st.success("scraper stopped successfully.")
                 else:
-                    st.warning("`app.py` did not terminate gracefully, attempting to kill...")
+                    st.warning("scraper did not terminate gracefully, attempting to kill...")
                     st.session_state.app_process.kill() # Force kill if terminate fails
                     st.session_state.app_process.wait()
-                    st.success("`app.py` forcefully stopped.")
+                    st.success("scraper forcefully stopped.")
 
                 # Display any output/errors from app.py
                 stdout, stderr = st.session_state.app_process.communicate()
                 if stdout:
-                    st.subheader("`app.py` Output:")
+                    st.subheader("Scraper Output:")
                     st.code(stdout)
                 if stderr:
-                    st.subheader("`app.py` Errors:")
+                    st.subheader("Scraper Errors:")
                     st.code(stderr)
 
             except Exception as e:
-                st.error(f"Error stopping `app.py`: {e}")
+                st.error(f"Error stopping scraper: {e}")
             finally:
                 st.session_state.app_process = None
                 update_app_status()
         else:
-            st.warning("`app.py` process not found in session state.")
-            st.session_state.app_process = None # Ensure state is clean
+            st.warning("scraper process not found in session state.")
+            st.session_state.app_process = None
             update_app_status()
 
 st.markdown("---")
@@ -157,10 +161,7 @@ st.info("Ensure your Chrome extension has been used to collect data into the spe
 if st.button("🚀 Update Mass Scraped Data to Google Sheet"):
     st.write(f"Running `sheet_mass.py` with JSON: `{mass_scrape_json_filename}`, Tab: `{mass_sheet_tab_name}`, and Sheet ID: `{google_sheet_id}`...")
     try:
-        # --- HIGHLIGHTED CHANGE START ---
-        # Pass the Google Sheet ID as a new argument
         command = [python_executable, os.path.join("server", "sheet_mass.py"), mass_scrape_json_filename, mass_sheet_tab_name, google_sheet_id]
-        # --- HIGHLIGHTED CHANGE END ---
         process = subprocess.run(command, capture_output=True, text=True, check=True)
         st.success("Mass Scraped Data Updated Successfully!")
         st.subheader("Output:")
@@ -183,10 +184,7 @@ st.markdown("---")
 if st.button("📊 Update Individual Profile Data to Google Sheet"):
     st.write(f"Running `sheet.py` with JSON: `{individual_profile_json_filename}`, Tab: `{individual_sheet_tab_name}`, and Sheet ID: `{google_sheet_id}`...")
     try:
-        # --- HIGHLIGHTED CHANGE START ---
-        # Pass the Google Sheet ID as a new argument
         command = [python_executable, os.path.join("server", "sheet.py"), individual_profile_json_filename, individual_sheet_tab_name, google_sheet_id]
-        # --- HIGHLIGHTED CHANGE END ---
         process = subprocess.run(command, capture_output=True, text=True, check=True)
         st.success("Individual Profile Data Updated Successfully!")
         st.subheader("Output:")
@@ -206,10 +204,9 @@ if st.button("📊 Update Individual Profile Data to Google Sheet"):
 st.markdown("""
 ---
 **Setup and Execution:**
-1.  **Save this code:** Save the code above as `streamlit_app.py` in the **parent directory** of your `server` folder (i.e., at the same level as `server`, `filtering`, etc.).
-2.  **Install Streamlit and psutil:** If you haven't already, install them: `pip install streamlit psutil`
-3.  **Make changes to your scripts (as previously instructed).**
-4.  **Activate your virtual environment (`env_scrap`).**
-5.  **Run Streamlit:** Open your terminal, navigate to the directory where you saved `streamlit_app.py`, and run: `streamlit run streamlit_app.py`
-6.  A new tab will open in your web browser with the UI.
+1.  **Run the scraper and go to the People section of a Company's page on LinkedIn**.
+2.  **Click the Bulk Scrape button in the extension ands wait for it to complete**.
+3.  **Once it is completed click the update mass scarped button on the website to push the urls to sheets**
+4.  **Enter sheets and visit each profile and click the "Current Porfile Deatils" button in the extension. Do this for all the profiles in the sheets**
+5.  **Once you are done with it click Update "Individual Profile Data" button on the website**.
 """)
